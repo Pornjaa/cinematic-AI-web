@@ -1,0 +1,15 @@
+# dependencies / build
+node_modules/
+node_modules.broken*/
+.next/
+
+# local env / secrets
+.env
+.env.local
+.env.*.local
+
+# local Netlify state
+.netlify/
+
+# macOS
+.DS_Store

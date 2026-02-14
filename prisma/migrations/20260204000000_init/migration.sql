@@ -1,0 +1,2 @@
+-- Use `npx prisma migrate dev --name init` to regenerate this migration from schema.prisma
+-- Placeholder migration file included for repository completeness.

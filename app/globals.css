@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #040507;
+  --card: #0d1117;
+  --text: #f4f5f7;
+  --muted: #a3a6af;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Noto Sans Thai", "Sukhumvit Set", "Prompt", "Segoe UI", sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at 20% 10%, #1a1d24 0%, #090b10 45%, #030406 100%);
+  min-height: 100vh;
+}
+
+.prose {
+  line-height: 1.75;
+  color: #e9eaee;
+}
+
+.bg-grid {
+  background-size: 22px 22px;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: 0.01em;
+}
+
+h1 {
+  font-family: "Impact", "Arial Black", "Bebas Neue", "Noto Sans Thai", sans-serif;
+  letter-spacing: 0.015em;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+main > div {
+  animation: page-enter 0.35s ease-out both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+input,
+textarea,
+select {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  background: rgba(18, 20, 28, 0.8);
+  color: #f5f6f8;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.18);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af;
+}
+
+.cinematic-card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(160deg, rgba(17, 20, 27, 0.85), rgba(10, 12, 18, 0.8));
+  backdrop-filter: blur(16px);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.35);
+}
