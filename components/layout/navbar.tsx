@@ -24,12 +24,34 @@ export async function Navbar() {
         </div>
         <div className="flex items-center gap-2">
           <LocaleSwitcher />
-          <Link
-            href={session?.user ? (session.user.role === "ADMIN" ? "/admin" : "/my-courses") : "/login"}
-            className="rounded-full bg-brand-700 px-5 py-2 text-sm text-white shadow-[0_10px_24px_rgba(225,29,72,0.45)] transition hover:-translate-y-0.5 hover:bg-brand-900"
-          >
-            {session?.user ? (session.user.role === "ADMIN" ? "Admin" : "Dashboard") : "เข้าสู่ระบบ/สมัครสมาชิก"}
-          </Link>
+          {session?.user ? (
+            <>
+              <span className="hidden rounded-full border border-white/15 px-3 py-1 text-xs text-zinc-200 md:inline">
+                {session.user.username ?? session.user.name ?? session.user.email ?? "user"}
+              </span>
+              <Link
+                href={session.user.role === "ADMIN" ? "/admin" : "/my-courses"}
+                className="rounded-full bg-brand-700 px-5 py-2 text-sm text-white shadow-[0_10px_24px_rgba(225,29,72,0.45)] transition hover:-translate-y-0.5 hover:bg-brand-900"
+              >
+                {session.user.role === "ADMIN" ? "Admin" : "Dashboard"}
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/register"
+                className="rounded-full border border-white/20 px-4 py-2 text-sm text-white transition hover:border-white/40"
+              >
+                สมัครสมาชิก
+              </Link>
+              <Link
+                href="/login"
+                className="rounded-full bg-brand-700 px-5 py-2 text-sm text-white shadow-[0_10px_24px_rgba(225,29,72,0.45)] transition hover:-translate-y-0.5 hover:bg-brand-900"
+              >
+                เข้าสู่ระบบ
+              </Link>
+            </>
+          )}
         </div>
       </nav>
     </header>

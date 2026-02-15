@@ -7,11 +7,13 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 
 const credentialSchema = z.object({
-  email: z.string().email(),
+  username: z.string().min(3),
   password: z.string().min(8)
 });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
+  secret: process.env.NEXTAUTH_SECRET,
   adapter: PrismaAdapter(db),
   session: { strategy: "jwt" },
   pages: {
@@ -20,14 +22,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({
       credentials: {
-        email: { label: "Email", type: "email" },
+        username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
         const parsed = credentialSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
-        const user = await db.user.findUnique({ where: { email: parsed.data.email } });
+        const login = parsed.data.username.trim();
+        const user = await db.user.findFirst({
+          where: {
+            OR: [
+              { username: { equals: login, mode: "insensitive" } },
+              { email: { equals: login, mode: "insensitive" } }
+            ]
+          }
+        });
         if (!user?.passwordHash) return null;
 
         const isValid = await bcrypt.compare(parsed.data.password, user.passwordHash);
@@ -37,6 +47,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
+          username: user.username,
           role: user.role
         };
       }
@@ -52,13 +63,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.role = user.role;
+      if (user) {
+        token.role = user.role;
+        token.sub = user.id;
+        token.username = user.username ?? null;
+      }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub ?? "";
         session.user.role = (token.role as "ADMIN" | "STUDENT") ?? "STUDENT";
+        session.user.username = (token.username as string | null | undefined) ?? null;
       }
       return session;
     }

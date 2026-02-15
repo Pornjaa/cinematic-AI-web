@@ -5,7 +5,12 @@ import { db } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
 
 const schema = z.object({
-  name: z.string().min(2),
+  username: z
+    .string()
+    .min(3)
+    .max(30)
+    .regex(/^[a-zA-Z0-9._-]+$/, "Invalid username")
+    .transform((value) => value.trim().toLowerCase()),
   email: z.string().email(),
   password: z.string().min(8)
 });
@@ -21,15 +26,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  const exists = await db.user.findUnique({ where: { email: parsed.data.email } });
+  const exists = await db.user.findFirst({
+    where: {
+      OR: [
+        { email: { equals: parsed.data.email, mode: "insensitive" } },
+        { username: { equals: parsed.data.username, mode: "insensitive" } }
+      ]
+    }
+  });
   if (exists) {
-    return NextResponse.json({ error: "Email already used" }, { status: 409 });
+    if (exists.email.toLowerCase() === parsed.data.email.toLowerCase()) {
+      return NextResponse.json({ error: "Email already used" }, { status: 409 });
+    }
+    return NextResponse.json({ error: "Username already used" }, { status: 409 });
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);
   await db.user.create({
     data: {
-      name: parsed.data.name,
+      username: parsed.data.username,
+      name: parsed.data.username,
       email: parsed.data.email,
       passwordHash
     }
