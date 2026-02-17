@@ -30,8 +30,7 @@ export function BuyCourseButton({
         body: JSON.stringify({ courseId, method, learningMode })
       });
 
-      const text = await response.text();
-      const result = text ? JSON.parse(text) : {};
+      const result = await parseJson(response);
       if (!response.ok) {
         alert((result as { error?: string }).error ?? "Payment error");
         setLoading(false);
@@ -49,30 +48,8 @@ export function BuyCourseButton({
         return;
       }
 
-      const signRes = await fetch("/api/upload/signed-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          folder: "slips",
-          fileName: slipFile.name,
-          contentType: slipFile.type || "image/jpeg"
-        })
-      });
-      const signText = await signRes.text();
-      const sign = signText ? JSON.parse(signText) : {};
-      if (!signRes.ok || !(sign as { uploadUrl?: string }).uploadUrl) {
-        alert((sign as { error?: string }).error ?? "ยังไม่ได้ตั้งค่าอัปโหลดสลิป (S3/R2)");
-        setLoading(false);
-        return;
-      }
-
-      const putRes = await fetch((sign as { uploadUrl: string }).uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": slipFile.type || "image/jpeg" },
-        body: slipFile
-      });
-      if (!putRes.ok) {
-        alert("Upload failed");
+      const uploaded = await uploadSlipFile(slipFile);
+      if (!uploaded) {
         setLoading(false);
         return;
       }
@@ -82,13 +59,12 @@ export function BuyCourseButton({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           orderId: (result as { orderId: string }).orderId,
-          slipImageUrl: (sign as { fileUrl: string }).fileUrl,
-          metadata: { key: (sign as { key: string }).key, name: slipFile.name, size: String(slipFile.size) }
+          slipImageUrl: uploaded.fileUrl,
+          metadata: { key: uploaded.key, name: slipFile.name, size: String(slipFile.size) }
         })
       });
 
-      const slipText = await slipRes.text();
-      const slipResult = slipText ? JSON.parse(slipText) : {};
+      const slipResult = await parseJson(slipRes);
       if (!slipRes.ok) {
         alert((slipResult as { error?: string }).error ?? "Slip submit failed");
         setLoading(false);
@@ -100,6 +76,68 @@ export function BuyCourseButton({
     } catch (error) {
       alert(error instanceof Error ? error.message : "Network error");
       setLoading(false);
+    }
+  }
+
+  async function uploadSlipFile(file: File): Promise<{ fileUrl: string; key: string } | null> {
+    try {
+      const signRes = await fetch("/api/upload/signed-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          folder: "slips",
+          fileName: file.name,
+          contentType: file.type || "image/jpeg"
+        })
+      });
+
+      const sign = await parseJson(signRes);
+      if (!signRes.ok || !(sign as { uploadUrl?: string }).uploadUrl) {
+        return await uploadSlipFileViaServer(file);
+      }
+
+      const putRes = await fetch((sign as { uploadUrl: string }).uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "image/jpeg" },
+        body: file
+      });
+
+      if (!putRes.ok) {
+        return await uploadSlipFileViaServer(file);
+      }
+
+      return { fileUrl: (sign as { fileUrl: string }).fileUrl, key: (sign as { key: string }).key };
+    } catch {
+      return await uploadSlipFileViaServer(file);
+    }
+  }
+
+  async function uploadSlipFileViaServer(file: File): Promise<{ fileUrl: string; key: string } | null> {
+    const form = new FormData();
+    form.append("folder", "slips");
+    form.append("file", file);
+
+    const uploadRes = await fetch("/api/upload/direct", {
+      method: "POST",
+      body: form
+    });
+    const upload = await parseJson(uploadRes);
+
+    if (!uploadRes.ok || !(upload as { fileUrl?: string }).fileUrl) {
+      alert((upload as { error?: string }).error ?? "อัปโหลดสลิปไม่สำเร็จ");
+      return null;
+    }
+
+    return { fileUrl: (upload as { fileUrl: string }).fileUrl, key: (upload as { key: string }).key };
+  }
+
+  async function parseJson(response: Response): Promise<unknown> {
+    const text = await response.text();
+    if (!text) return {};
+    try {
+      return JSON.parse(text) as unknown;
+    } catch {
+      return {};
     }
   }
 

@@ -22,9 +22,29 @@ export async function createSignedUploadUrl(key: string, contentType: string, ex
   });
 
   const uploadUrl = await getSignedUrl(s3, command, { expiresIn });
-  const publicBase = process.env.AWS_S3_PUBLIC_BASE_URL ?? "";
   return {
     uploadUrl,
-    fileUrl: `${publicBase}/${key}`
+    fileUrl: toPublicFileUrl(key)
   };
+}
+
+export async function uploadObject(params: {
+  key: string;
+  contentType: string;
+  body: Uint8Array;
+}) {
+  const command = new PutObjectCommand({
+    Bucket: bucket,
+    Key: params.key,
+    ContentType: params.contentType,
+    Body: params.body
+  });
+
+  await s3.send(command);
+  return { fileUrl: toPublicFileUrl(params.key) };
+}
+
+function toPublicFileUrl(key: string) {
+  const publicBase = process.env.AWS_S3_PUBLIC_BASE_URL ?? "";
+  return `${publicBase}/${key}`;
 }
